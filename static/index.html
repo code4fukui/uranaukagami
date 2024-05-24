@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="icon" href="data:">
-<title>うらなうかがみ</title>
+<title>うらなうかがみさん</title>
 </head><body>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
@@ -8,7 +8,7 @@
 
 <main id=main>
 <div class="text">
-  <h1>うらなうかがみ</h1>
+  <h1>うらなうかがみさん</h1>
   <div id=divtext></div>
 </div>
 
@@ -127,7 +127,7 @@ faceMesh.onResults((res) => {
         const param = { imgbin, prompt };
         fetchCBOR("/api/imagerecog", param).then(res => {
           console.log(res);
-          divtext.textContent = res;
+          divtext.textContent = res + " (powered by GPT4o/OpenAI)";
         });
       }
       tlastcnt = cnt;
