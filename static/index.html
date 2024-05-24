@@ -1,0 +1,162 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="icon" href="data:">
+<title>うらなうかがみ</title>
+</head><body>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+<main id=main>
+<div class="text">
+  <h1>うらなうかがみ</h1>
+  <div id=divtext></div>
+</div>
+
+<div class="container">
+  <video id="videoElement" playsinline style="display:none"></video>
+  <canvas id="canvasElement"></canvas>
+</div>
+</main>
+
+<!--
+<label><input type="checkbox" id="showimg">show original image</label>
+<label><input type="checkbox" id="mirrormode" checked>mirror mode</label>
+<label><input type="checkbox" id="backcameramode">backcamera mode</label>
+-->
+<hr>
+src: <a href="https://google.github.io/mediapipe/solutions/face_mesh.html">Face Mesh - mediapipe</a><br>
+
+<style>
+.text {
+  position: absolute;
+  -webkit-text-stroke: .05em black;
+  text-stroke: .05em black;
+  color: white;
+  top: 10px;
+  left: 10px;
+}
+h1 {
+  color: white;
+  margin: 0;
+  padding: 0;
+  font-size: 5vw;
+}
+#divtext {
+  font-size: 180%;
+  margin-top: 1em;
+  font-size: 3vw;
+}
+body {
+  font-family: sans-serif;
+  margin: 0;
+}
+.container {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+#canvasElement {
+  width: 100%;
+}
+</style>
+
+
+<script type="module">
+import { Camera } from "https://code4fukui.github.io/Camera/Camera.js";
+import { canvas2jpeg } from "./canvas2jpeg.js";
+import { CBOR } from "https://code4fukui.github.io/CBOR-es/CBOR.js";
+import { fetchCBOR } from "https://code4fukui.github.io/wsutil/fetchCBOR.js";
+
+const g = canvasElement.getContext("2d");
+
+const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
+
+let tlastface = performance.now();
+const dt = 1000;
+let tlastcnt = 0;
+
+faceMesh.setOptions({
+  maxNumFaces: 5,
+  refineLandmarks: true,
+  minDetectionConfidence: 0.5,
+  minTrackingConfidence: 0.5,
+});
+faceMesh.onResults((res) => {
+  const w = canvasElement.width;
+  const h = canvasElement.height;
+  g.save();
+  if (window.mirrormode?.checked || true) {
+    g.scale(-1, 1);
+    g.translate(-w, 0);
+    /* // 180度回転
+    g.translate(w / 2, h / 2);
+    g.rotate(Math.PI);
+    g.translate(-w / 2, -h / 2);
+    */
+  }
+  g.clearRect(0, 0, w, h);
+  if (window.showimg?.checked || true) {
+    g.drawImage(res.image, 0, 0, w, h);
+  }
+  // draw face mesh
+  /*
+  if (res.multiFaceLandmarks) {
+    for (const landmarks of res.multiFaceLandmarks) {
+      drawConnectors(g, landmarks, FACEMESH_TESSELATION, { color: 'gray', lineWidth: 1 });
+      drawConnectors(g, landmarks, FACEMESH_RIGHT_EYE, { color: 'black' });
+      drawConnectors(g, landmarks, FACEMESH_RIGHT_EYEBROW, { color: 'gray' });
+      drawConnectors(g, landmarks, FACEMESH_RIGHT_IRIS, { color: 'black' });
+      drawConnectors(g, landmarks, FACEMESH_LEFT_EYE, { color: 'black' });
+      drawConnectors(g, landmarks, FACEMESH_LEFT_EYEBROW, { color: 'gray' });
+      drawConnectors(g, landmarks, FACEMESH_LEFT_IRIS, { color: 'black' });
+      drawConnectors(g, landmarks, FACEMESH_FACE_OVAL, { color: "balck" });
+      drawConnectors(g, landmarks, FACEMESH_LIPS, { color: "red" });
+    }
+  }
+  */
+  g.restore();
+
+  const now = performance.now();
+  const cnt = res.multiFaceLandmarks.length;
+  if (now > tlastface + dt) {
+    if (tlastcnt != cnt) {
+      if (cnt > 0) {
+        divtext.textContent = cnt + "人、見えました。年齢、性別、職業とラッキーアイテムを占ってみます！";
+        const imgbin = canvas2jpeg(res.image);
+        const prompt = "この画像の人物の年齢、性別、職業とラッキーアイテムをラフな占い師っぽい感じで回答してね";
+        const param = { imgbin, prompt };
+        fetchCBOR("/api/imagerecog", param).then(res => {
+          console.log(res);
+          divtext.textContent = res;
+        });
+      }
+      tlastcnt = cnt;
+    }
+    tlastface = now;
+  }
+  if (!cnt) {
+    divtext.textContent = "この鏡をのぞいてみてください";
+  }
+});
+
+const camera = new Camera(videoElement, {
+  onFrame: async () => {
+    canvasElement.width = videoElement.videoWidth;
+    canvasElement.height = videoElement.videoHeight;
+    await faceMesh.send({ image: videoElement });
+  },
+  width: 1280,
+  height: 720,
+  backcamera: window.backcameramode ? backcameramode.checked : false,
+});
+camera.start();
+if (window.backcameramode) {
+  backcameramode.onchange = () => camera.flip();
+}
+
+main.onclick = () => {
+  main.requestFullscreen();
+};
+</script>
+
+</body></html>
