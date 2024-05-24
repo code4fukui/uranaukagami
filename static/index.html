@@ -29,14 +29,12 @@ src: <a href="https://google.github.io/mediapipe/solutions/face_mesh.html">Face 
 <style>
 .text {
   position: absolute;
-  -webkit-text-stroke: .05em black;
-  text-stroke: .05em black;
-  color: white;
-  top: 10px;
-  left: 10px;
+  margin: .5em;
 }
 h1 {
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
   color: white;
+
   margin: 0;
   padding: 0;
   font-size: 5vw;
@@ -44,7 +42,10 @@ h1 {
 #divtext {
   font-size: 180%;
   margin-top: 1em;
-  font-size: 3vw;
+  font-size: 2.5vw;
+
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
+  color: white;
 }
 body {
   font-family: sans-serif;
@@ -72,8 +73,11 @@ const g = canvasElement.getContext("2d");
 const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
 
 let tlastface = performance.now();
-const dt = 1000;
-let tlastcnt = 0;
+const dt = 2000;
+let lastcnt = -1;
+let fetchcnt = -1;
+let busy = false;
+let changed = false;
 
 faceMesh.setOptions({
   maxNumFaces: 5,
@@ -116,26 +120,36 @@ faceMesh.onResults((res) => {
   */
   g.restore();
 
+  if (busy) return;
+
   const now = performance.now();
   const cnt = res.multiFaceLandmarks.length;
-  if (now > tlastface + dt) {
-    if (tlastcnt != cnt) {
-      if (cnt > 0) {
-        divtext.textContent = cnt + "人、見えました。年齢、性別、職業とラッキーアイテムを占ってみます！";
-        const imgbin = canvas2jpeg(res.image);
-        const prompt = "この画像の人物の年齢、性別、職業とラッキーアイテムをラフな占い師っぽい感じで回答してね";
-        const param = { imgbin, prompt };
-        fetchCBOR("/api/imagerecog", param).then(res => {
-          console.log(res);
-          divtext.textContent = res + " (powered by GPT4o/OpenAI)";
-        });
-      }
-      tlastcnt = cnt;
-    }
+  if (lastcnt != cnt) {
     tlastface = now;
+    lastcnt = cnt;
+    fetchcnt = -1;
+    if (cnt > 0) {
+      divtext.textContent = cnt + "人、いますね。";
+    } else {
+      divtext.textContent = "この鏡をのぞいてみてください";
+    }
   }
-  if (!cnt) {
-    divtext.textContent = "この鏡をのぞいてみてください";
+  if (cnt > 0 && now > tlastface + dt && fetchcnt != lastcnt) {
+    busy = true;
+    fetchcnt = lastcnt;
+    const imgbin = canvas2jpeg(canvasElement, 600);
+    const param = { imgbin, prompt };
+    if (cnt == 1) {
+      divtext.textContent = "年齢、性別、職業とラッキーアイテムを占ってみます！";
+      param.prompt = "この画像の人物の年齢、性別、職業とラッキーアイテムをラフな占い師っぽい感じで回答してね";
+    } else {
+      divtext.textContent = cnt + "人の相性を占ってみます！";
+      param.prompt = "この画像の人物、それぞれの性別と年齢の推定と、相性をラフな占い師っぽい感じで回答してね";
+    }
+    fetchCBOR("/api/imagerecog", param).then(res => {
+      divtext.textContent = res + " (powered by GPT4o/OpenAI)";
+      setTimeout(() => busy = false, 15 * 1000);
+    });
   }
 });
 
