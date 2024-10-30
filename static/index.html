@@ -148,7 +148,7 @@ faceMesh.onResults((res) => {
     }
     fetchCBOR("/api/imagerecog", param).then(res => {
       divtext.textContent = res + " (powered by GPT4o/OpenAI)";
-      setTimeout(() => busy = false, 15 * 1000);
+      setTimeout(() => busy = false, 5 * 1000);
     });
   }
 });
