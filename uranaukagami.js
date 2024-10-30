@@ -1,7 +1,7 @@
-import { serveWeb } from "https://code4fukui.github.io/wsutil/serveWeb.js";
+import { fetchWeb } from "https://code4fukui.github.io/wsutil/fetchWeb.js";
 import { fetchImageRecog } from "https://code4fukui.github.io/openai-imagerecog/fetchImageRecog.js"
 
-serveWeb(async (param, req, path, conn) => {
+export default fetchWeb(async (param, req, path, conninfo) => {
   if (path == "/api/imagerecog") {
     const res = await fetchImageRecog(param.imgbin, param.prompt);
     return res;
