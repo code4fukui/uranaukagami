@@ -69,6 +69,9 @@ import { canvas2jpeg } from "./canvas2jpeg.js";
 import { CBOR } from "https://code4fukui.github.io/CBOR-es/CBOR.js";
 import { fetchCBOR } from "https://code4fukui.github.io/wsutil/fetchCBOR.js";
 
+const model = await (await fetch("/api/model")).text();
+console.log("model", model);
+
 const g = canvasElement.getContext("2d");
 
 const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
@@ -168,8 +171,7 @@ faceMesh.onResults((res) => {
       if (typeof res == "object") {
         res = Object.entries(res).map(i => i[0] + ": " + i[1]).join("\n\n") + "\n";
       }
-      const model = "gemma3:2b";
-      divtext.textContent = res + " (powered by " + model + ")";
+      divtext.textContent = res + "\n(powered by " + model + ")";
       setTimeout(() => busy = false, 5 * 1000);
     });
   }
