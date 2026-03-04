@@ -11,6 +11,8 @@ ollama run gemma3:4b
 
 ### with GPT5.3
 
+edit model of [uranaukamagi.js](uranaukagami.js) to "GPT5.3/OpenAI"
+
 get API_KEY from OpenAI, and prepare .env (see [openai-imagerecog](https://github.com/code4fukui/openai-imagerecog/))
 
 ## how to run
