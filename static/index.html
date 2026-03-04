@@ -41,11 +41,12 @@ h1 {
 }
 #divtext {
   font-size: 180%;
-  margin-top: 1em;
-  font-size: 2.5vw;
+  margin: 1em .5em .5em .5em;
+  font-size: 2.0vw;
 
   text-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
   color: white;
+  white-space: pre-wrap;
 }
 body {
   font-family: sans-serif;
@@ -86,6 +87,9 @@ faceMesh.setOptions({
   minTrackingConfidence: 0.5,
 });
 faceMesh.onResults((res) => {
+  canvasElement.width = window.innerWidth;
+  canvasElement.height = window.innerHeight;
+
   const w = canvasElement.width;
   const h = canvasElement.height;
   g.save();
@@ -100,7 +104,21 @@ faceMesh.onResults((res) => {
   }
   g.clearRect(0, 0, w, h);
   if (window.showimg?.checked || true) {
-    g.drawImage(res.image, 0, 0, w, h);
+    //g.drawImage(res.image, 0, 0, w, h);
+    const img = res.image;
+    const iw = img.width;
+    const ih = img.height;
+
+    // coverスケール
+    const scale = Math.max(w / iw, h / ih);
+
+    const dw = iw * scale;
+    const dh = ih * scale;
+
+    const dx = (w - dw) / 2;
+    const dy = (h - dh) / 2;
+
+    g.drawImage(img, dx, dy, dw, dh);
   }
   // draw face mesh
   /*
@@ -147,7 +165,11 @@ faceMesh.onResults((res) => {
       param.prompt = "この画像の人物、それぞれの性別と年齢の推定と、相性をラフな占い師っぽい感じで回答してね";
     }
     fetchCBOR("/api/imagerecog", param).then(res => {
-      divtext.textContent = res + " (powered by GPT4o/OpenAI)";
+      if (typeof res == "object") {
+        res = Object.entries(res).map(i => i[0] + ": " + i[1]).join("\n\n") + "\n";
+      }
+      const model = "gemma3:2b";
+      divtext.textContent = res + " (powered by " + model + ")";
       setTimeout(() => busy = false, 5 * 1000);
     });
   }
